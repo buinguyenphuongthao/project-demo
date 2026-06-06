@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Languages, Hash } from "lucide-react";
 import type { BankInfoForm, BankEntry, BranchEntry } from "../types";
 import takakuLogo from "../assets/takaku_logo.svg";
 
@@ -68,17 +69,21 @@ function ReqBadge() {
 }
 
 function Field({
-  label, badge, error, children,
+  label, badge, error, htmlFor, children,
 }: {
   label: string;
   badge?: 'required';
   error?: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="mb-5">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-base font-normal text-[#1F2329]">{label}</span>
+        {htmlFor
+          ? <label htmlFor={htmlFor} className="text-base font-normal text-[#1F2329]">{label}</label>
+          : <span className="text-base font-normal text-[#1F2329]">{label}</span>
+        }
         {badge === 'required' && <ReqBadge />}
       </div>
       {children}
@@ -93,15 +98,19 @@ function ResolvedChip({ name, code, onClear }: { name: string; code: string; onC
   return (
     <div className="flex items-center justify-between h-[52px] px-4 bg-white border border-gray-300 rounded-lg text-[#1F2329]">
       <span className="text-base">{name}</span>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <span className="text-xs text-gray-400 font-mono">{code}</span>
         <button
           type="button"
           onClick={onClear}
-          className="text-gray-400 hover:text-gray-700 text-xl leading-none transition-colors"
+          className="flex items-center justify-center w-8 h-8 -mr-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
           aria-label="クリア"
         >
-          ×
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <line x1="1" y1="1" x2="11" y2="11"/>
+            <line x1="11" y1="1" x2="1" y2="11"/>
+          </svg>
         </button>
       </div>
     </div>
@@ -120,7 +129,9 @@ function Dropdown({ items, onSelect }: {
 }) {
   return (
     <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 rounded-b-lg max-h-44 overflow-y-auto z-30 shadow-md">
-      {items.map(item => (
+      {items.length === 0 ? (
+        <p className="px-4 py-3 text-sm text-gray-400 text-center">見つかりませんでした</p>
+      ) : items.map(item => (
         <button
           key={item.code}
           type="button"
@@ -341,8 +352,11 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
       </div>
 
       {/* Scrollable content */}
-      <main className="flex-1 flex justify-center px-4 py-5 pb-24 sm:pb-5">
-        <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-8">
+      <main className="flex-1 flex justify-center py-5 pb-24 sm:pb-5">
+        <div
+          className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-8"
+          style={{ width: 'clamp(320px, calc(100% - 2rem), 560px)', margin: '0 auto', boxSizing: 'border-box' }}
+        >
 
           {/* Section heading */}
           <h1 className="flex items-center gap-2 text-xl font-bold text-[#1F2329] mb-5">
@@ -358,8 +372,9 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
 
           {/* ── 口座名義人 ── */}
           <div ref={holderRef}>
-            <Field label="口座名義人" badge="required" error={errors.holder}>
+            <Field label="口座名義人" badge="required" error={errors.holder} htmlFor="holder">
               <input
+                id="holder"
                 className={INPUT}
                 type="text"
                 placeholder="例）カイトリ タロウ"
@@ -370,7 +385,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                   if (errors.holder) setErrors(er => ({ ...er, holder: '' }));
                 }}
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-sm text-gray-500">
                 通帳・キャッシュカードと同じカタカナ氏名をご入力ください。
               </p>
             </Field>
@@ -395,10 +410,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                     : 'bg-white text-gray-500 hover:bg-gray-50',
                 ].join(' ')}
               >
-                <span className={searchMode === 'name' ? 'text-white' : 'text-[#4A7BF7]'}
-                  style={{ fontSize: '16px', fontWeight: 400 }}>
-                  あ
-                </span>
+                <Languages size={16} aria-hidden />
                 銀行名
               </button>
               <button
@@ -412,12 +424,12 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                     : 'bg-white text-gray-500 hover:bg-gray-50',
                 ].join(' ')}
               >
-                <span className="font-mono text-sm">123</span>
+                <Hash size={16} aria-hidden />
                 銀行コード
               </button>
             </div>
 
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="text-sm text-gray-500 mb-3">
               {searchMode === 'name'
                 ? '銀行名またはかなで検索してください。'
                 : '通帳またはキャッシュカードに記載されているコードを入力してください。'}
@@ -427,7 +439,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
             {searchMode === 'name' && (
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">銀行名</p>
+                  <p className="text-sm text-gray-500 mb-1">銀行名</p>
                   {selectedBank ? (
                     <ResolvedChip name={selectedBank.name} code={selectedBank.code} onClear={clearBankByName} />
                   ) : (
@@ -440,14 +452,14 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                         onChange={e => onBankNameChange(e.target.value)}
                         onBlur={() => setTimeout(() => setBankNameOpen(false), 150)}
                       />
-                      {bankNameOpen && bankNameResults.length > 0 && (
+                      {bankNameOpen && (
                         <Dropdown items={bankNameResults} onSelect={selectBankByName} />
                       )}
                     </div>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">支店名</p>
+                  <p className="text-sm text-gray-500 mb-1">支店名</p>
                   {selectedBranch ? (
                     <ResolvedChip name={selectedBranch.name} code={selectedBranch.code} onClear={clearBranchByName} />
                   ) : (
@@ -461,7 +473,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                         onChange={e => onBranchNameChange(e.target.value)}
                         onBlur={() => setTimeout(() => setBranchNameOpen(false), 150)}
                       />
-                      {branchNameOpen && branchNameResults.length > 0 && (
+                      {branchNameOpen && (
                         <Dropdown items={branchNameResults} onSelect={selectBranchByName} />
                       )}
                     </div>
@@ -474,7 +486,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
             {searchMode === 'code' && (
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">銀行コード</p>
+                  <p className="text-sm text-gray-500 mb-1">銀行コード</p>
                   {selectedBank ? (
                     <ResolvedChip name={selectedBank.name} code={selectedBank.code} onClear={clearBankByCode} />
                   ) : (
@@ -489,14 +501,14 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                         onChange={e => onBankCodeChange(e.target.value)}
                         onBlur={() => setTimeout(() => setBankCodeOpen(false), 150)}
                       />
-                      {bankCodeOpen && bankCodeResults.length > 0 && (
+                      {bankCodeOpen && (
                         <Dropdown items={bankCodeResults} onSelect={selectBankByCode} />
                       )}
                     </div>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">支店コード</p>
+                  <p className="text-sm text-gray-500 mb-1">支店コード</p>
                   {selectedBranch ? (
                     <ResolvedChip name={selectedBranch.name} code={selectedBranch.code} onClear={clearBranchByCode} />
                   ) : (
@@ -512,7 +524,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                         onChange={e => onBranchCodeChange(e.target.value)}
                         onBlur={() => setTimeout(() => setBranchCodeOpen(false), 150)}
                       />
-                      {branchCodeOpen && branchCodeResults.length > 0 && (
+                      {branchCodeOpen && (
                         <Dropdown items={branchCodeResults} onSelect={selectBranchByCode} />
                       )}
                     </div>
@@ -527,8 +539,9 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
 
           {/* ── 口座番号 ── */}
           <div ref={accountRef}>
-            <Field label="口座番号" badge="required" error={errors.accountNumber}>
+            <Field label="口座番号" badge="required" error={errors.accountNumber} htmlFor="accountNumber">
               <input
+                id="accountNumber"
                 className={INPUT}
                 type="text"
                 inputMode="numeric"
@@ -537,7 +550,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                 value={accountNumber}
                 onChange={e => onAccountChange(e.target.value)}
               />
-              <p className="mt-1 text-xs text-gray-500">※ 普通預金口座のみ対応</p>
+              <p className="mt-1 text-sm text-gray-500">※ 普通預金口座のみ対応</p>
             </Field>
           </div>
 
@@ -573,7 +586,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-sm text-gray-500">
               ※ 不要を選択した場合、最終査定後に通知なく直接お支払いとなります。
             </p>
           </div>
@@ -613,6 +626,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
             isAllValid ? 'bg-accent-primary cursor-pointer' : 'bg-gray-300 cursor-not-allowed',
           ].join(' ')}
           onClick={handleNext}
+          disabled={!isAllValid}
         >
           次へ
         </button>
