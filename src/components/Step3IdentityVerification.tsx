@@ -80,7 +80,7 @@ export function Step3IdentityVerification({ initialMethod, onProceed, onBack }: 
   }
 
   const hint = showHint && (
-    <p className="text-xs text-[#F36B6B] font-medium text-center mb-3">
+    <p className="text-xs text-[#F36B6B] font-medium text-center">
       確認方法を選択してから次へお進みください。
     </p>
   );
