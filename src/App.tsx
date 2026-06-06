@@ -71,6 +71,7 @@ export default function App() {
   return (
     <Step3IdentityVerification
       initialMethod={identityMethod}
+      onChange={setIdentityMethod}
       onProceed={(method) => {
         setIdentityMethod(method);
         alert("✅ ステップ3完了。\n確認方法：" + method);

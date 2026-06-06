@@ -6,6 +6,7 @@ interface Props {
   initialMethod: IdentityVerificationMethod | null;
   onProceed: (method: IdentityVerificationMethod) => void;
   onBack: () => void;
+  onChange?: (method: IdentityVerificationMethod | null) => void;
 }
 
 type MethodDef = {
@@ -62,7 +63,7 @@ const METHODS: MethodDef[] = [
   },
 ];
 
-export function Step3IdentityVerification({ initialMethod, onProceed, onBack }: Props) {
+export function Step3IdentityVerification({ initialMethod, onProceed, onBack, onChange }: Props) {
   const [selected, setSelected] = useState<IdentityVerificationMethod | null>(initialMethod);
   const [showHint, setShowHint] = useState(false);
 
@@ -77,6 +78,7 @@ export function Step3IdentityVerification({ initialMethod, onProceed, onBack }: 
   function handleSelect(id: IdentityVerificationMethod) {
     setSelected(id);
     setShowHint(false);
+    onChange?.(id);
   }
 
   const hint = showHint && (
