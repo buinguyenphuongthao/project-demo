@@ -68,7 +68,7 @@ const QR_GRID = buildQrGrid();
 const nextBtn = (fullWidth: boolean, onProceed: () => void) => (
   <button
     type="button"
-    onClick={() => onProceed()}
+    onClick={onProceed}
     className={[
       "button-background rounded-[10px] py-4",
       "text-[17px] font-bold tracking-wide text-white",
@@ -99,7 +99,6 @@ export function StepQrTransition({ onProceed, onBack }: Props) {
       <div className="sticky top-0 z-20 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] py-2">
         <div
           style={{ width: "clamp(320px, calc(100% - 2rem), 560px)", margin: "0 auto" }}
-          className="flex items-center"
         >
           <HeaderLogo />
         </div>

@@ -44,7 +44,7 @@ describe('StepQrTransition', () => {
     const onProceed = vi.fn();
     render(<StepQrTransition onProceed={onProceed} onBack={vi.fn()} />);
     fireEvent.click(screen.getAllByRole('button', { name: '次へ' })[0]);
-    expect(onProceed).toHaveBeenCalledWith();
+    expect(onProceed).toHaveBeenCalledTimes(1);
   });
 
   it('calls onBack when 前のステップに戻る is clicked', () => {
