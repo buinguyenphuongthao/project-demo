@@ -3,9 +3,10 @@ import { ConsentGate } from "./components/ConsentGate";
 import { StepEkycIntro } from "./components/StepEkycIntro";
 import { Step1PersonalInfo } from "./components/Step1PersonalInfo";
 import { Step2BankRegistration } from "./components/Step2BankRegistration";
-import type { PersonalInfoForm, BankInfoForm } from "./types";
+import { Step3IdentityVerification } from "./components/Step3IdentityVerification";
+import type { PersonalInfoForm, BankInfoForm, IdentityVerificationMethod } from "./types";
 
-type AppStep = "consent" | "ekyc" | "step1" | "step2";
+type AppStep = "consent" | "ekyc" | "step1" | "step2" | "step3";
 
 const emptyPersonalInfo: PersonalInfoForm = {
   name: "", kana: "", dobYear: "", dobMonth: "", dobDay: "",
@@ -22,9 +23,10 @@ const emptyBankInfo: BankInfoForm = {
 };
 
 export default function App() {
-  const [step, setStep]                 = useState<AppStep>("consent");
-  const [personalInfo, setPersonalInfo] = useState<PersonalInfoForm>(emptyPersonalInfo);
-  const [bankInfo, setBankInfo]         = useState<BankInfoForm>(emptyBankInfo);
+  const [step, setStep]                     = useState<AppStep>("consent");
+  const [personalInfo, setPersonalInfo]     = useState<PersonalInfoForm>(emptyPersonalInfo);
+  const [bankInfo, setBankInfo]             = useState<BankInfoForm>(emptyBankInfo);
+  const [identityMethod, setIdentityMethod] = useState<IdentityVerificationMethod | null>(null);
 
   if (step === "consent") {
     return <ConsentGate onProceed={() => setStep("ekyc")} />;
@@ -45,7 +47,6 @@ export default function App() {
         initialData={personalInfo}
         onProceed={(data) => {
           setPersonalInfo(data);
-          // Pre-fill holder from kana on first visit; preserve what was entered on return visits
           setBankInfo(prev => ({ ...prev, holder: prev.holder || data.kana }));
           setStep("step2");
         }}
@@ -54,19 +55,27 @@ export default function App() {
     );
   }
 
+  if (step === "step2") {
+    return (
+      <Step2BankRegistration
+        initialData={bankInfo}
+        onProceed={(data) => {
+          setBankInfo(data);
+          setStep("step3");
+        }}
+        onBack={() => setStep("step1")}
+      />
+    );
+  }
+
   return (
-    <Step2BankRegistration
-      initialData={bankInfo}
-      onProceed={(data) => {
-        setBankInfo(data);
-        alert(
-          "✅ ステップ2完了。\n" +
-          "銀行：" + data.bank!.name + " (" + data.bank!.code + ")\n" +
-          "支店：" + data.branch!.name + " (" + data.branch!.code + ")\n" +
-          "口座番号：" + data.accountNumber
-        );
+    <Step3IdentityVerification
+      initialMethod={identityMethod}
+      onProceed={(method) => {
+        setIdentityMethod(method);
+        alert("✅ ステップ3完了。\n確認方法：" + method);
       }}
-      onBack={() => setStep("step1")}
+      onBack={() => setStep("step2")}
     />
   );
 }
