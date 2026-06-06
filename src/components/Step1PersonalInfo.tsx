@@ -164,6 +164,7 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
   const [postal, setPostal] = useState(initialData.postalCode);
   const [postalLoading, setPostalLoading] = useState(false);
   const postalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isComposing = useRef(false);
   const [prefecture, setPrefecture] = useState(initialData.prefecture);
   const [address, setAddress] = useState(initialData.address);
   const [occupation, setOccupation] = useState(initialData.occupation);
@@ -203,8 +204,36 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
   }
 
   // ── Postal code ──
+  function normalizePostal(v: string): string {
+    return v
+      .split('')
+      .map(ch => {
+        const code = ch.charCodeAt(0);
+        return code >= 0xFF10 && code <= 0xFF19 ? String.fromCharCode(code - 0xFEE0) : ch;
+      })
+      .join('')
+      .replace(/\D/g, '')
+      .slice(0, 7);
+  }
+
   function handlePostalChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const v = e.target.value.replace(/\D/g, '').slice(0, 7);
+    if (isComposing.current) {
+      setPostal(e.target.value);
+      return;
+    }
+    const v = normalizePostal(e.target.value);
+    setPostal(v);
+    if (errors.postal) clearError('postal');
+    if (postalTimerRef.current !== null) {
+      clearTimeout(postalTimerRef.current);
+      postalTimerRef.current = null;
+      setPostalLoading(false);
+    }
+  }
+
+  function handlePostalCompositionEnd(e: React.CompositionEvent<HTMLInputElement>) {
+    isComposing.current = false;
+    const v = normalizePostal(e.currentTarget.value);
     setPostal(v);
     if (errors.postal) clearError('postal');
     if (postalTimerRef.current !== null) {
@@ -409,6 +438,8 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
                 value={postal}
                 onChange={handlePostalChange}
                 onBlur={handlePostalBlur}
+                onCompositionStart={() => { isComposing.current = true; }}
+                onCompositionEnd={handlePostalCompositionEnd}
               />
               {postalLoading && (
                 <span className="absolute right-4 top-1/2 -translate-y-1/2">

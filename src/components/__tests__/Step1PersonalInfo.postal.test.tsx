@@ -73,6 +73,33 @@ describe('Step1PersonalInfo — postal code input', () => {
     expect(input).not.toBeDisabled();
   });
 
+  it('preserves raw composing text during IME composition without stripping', async () => {
+    render(<Step1PersonalInfo initialData={emptyForm} onProceed={vi.fn()} onBack={vi.fn()} />);
+    const input = screen.getByPlaceholderText('例）1040061') as HTMLInputElement;
+
+    // compositionStart marks the input as composing
+    fireEvent.compositionStart(input);
+    // During composition onChange fires with interim text that may include non-digits
+    fireEvent.change(input, { target: { value: 'あ123' } });
+    // Raw composing text should be preserved — not stripped — so IME can finish
+    expect(input.value).toBe('あ123');
+
+    // compositionEnd normalizes: strip non-digits, keep only the digits
+    fireEvent.compositionEnd(input, { data: 'あ123' });
+    expect(input.value).toBe('123');
+  });
+
+  it('normalizes full-width digits (１２３) entered via Japanese IME', async () => {
+    render(<Step1PersonalInfo initialData={emptyForm} onProceed={vi.fn()} onBack={vi.fn()} />);
+    const input = screen.getByPlaceholderText('例）1040061') as HTMLInputElement;
+
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: '１２３４５６７' } }); // full-width via IME
+    fireEvent.compositionEnd(input, { data: '１２３４５６７' });
+
+    expect(input.value).toBe('1234567');
+  });
+
   it('address lookup fills prefecture and address after 900ms', async () => {
     render(<Step1PersonalInfo initialData={emptyForm} onProceed={vi.fn()} onBack={vi.fn()} />);
     const input = screen.getByPlaceholderText('例）1040061');
