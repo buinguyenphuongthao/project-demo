@@ -4,9 +4,10 @@ import { StepEkycIntro } from "./components/StepEkycIntro";
 import { Step1PersonalInfo } from "./components/Step1PersonalInfo";
 import { Step2BankRegistration } from "./components/Step2BankRegistration";
 import { Step3IdentityVerification } from "./components/Step3IdentityVerification";
+import { StepQrTransition } from "./components/StepQrTransition";
 import type { PersonalInfoForm, BankInfoForm, IdentityVerificationMethod } from "./types";
 
-type AppStep = "consent" | "ekyc" | "step1" | "step2" | "step3";
+type AppStep = "consent" | "ekyc" | "step1" | "step2" | "step3" | "qr";
 
 const emptyPersonalInfo: PersonalInfoForm = {
   name: "", kana: "", dobYear: "", dobMonth: "", dobDay: "",
@@ -68,13 +69,22 @@ export default function App() {
     );
   }
 
+  if (step === "qr") {
+    return (
+      <StepQrTransition
+        onProceed={() => alert("✅ 本人確認手続きを完了しました。")}
+        onBack={() => setStep("step3")}
+      />
+    );
+  }
+
   return (
     <Step3IdentityVerification
       initialMethod={identityMethod}
       onChange={setIdentityMethod}
       onProceed={(method) => {
         setIdentityMethod(method);
-        alert("✅ ステップ3完了。\n確認方法：" + method);
+        setStep("qr");
       }}
       onBack={() => setStep("step2")}
     />
