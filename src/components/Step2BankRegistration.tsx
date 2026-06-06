@@ -334,8 +334,8 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
     <div className="min-h-screen flex flex-col bg-page" style={{ fontFamily: 'var(--font-base)' }}>
 
       {/* Sticky progress header */}
-      <div className="sticky top-0 z-20 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] px-5 pt-3 pb-3">
-        <div className="mx-auto max-w-3xl flex items-center justify-between">
+      <div className="sticky top-0 z-20 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] pt-3 pb-3">
+        <div className="flex items-center justify-between" style={{ width: 'clamp(320px, calc(100% - 2rem), 560px)', margin: '0 auto' }}>
           <img src={takakuLogo} alt="高く売れるドットコム" className="h-[64px]" />
           <div className="text-right">
             <p className="text-xs text-gray-500 mb-1.5">4ステップ中 2</p>

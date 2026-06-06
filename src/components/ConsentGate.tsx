@@ -19,10 +19,10 @@ export function ConsentGate({ onProceed }: ConsentGateProps) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-grow">
+    <div className="flex min-h-screen flex-col bg-page">
+      <main className="flex-grow py-5">
         <div
-          className="p-4 pb-5"
+          className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-4 pb-5"
           style={{ width: 'clamp(320px, calc(100% - 2rem), 560px)', margin: '0 auto', boxSizing: 'border-box' }}
         >
           <div className="flex items-center">
