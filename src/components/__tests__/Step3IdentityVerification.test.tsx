@@ -1,10 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Step3IdentityVerification } from '../Step3IdentityVerification';
 
 const noop = vi.fn();
 
 describe('Step3IdentityVerification', () => {
+
+  beforeEach(() => { noop.mockReset(); });
 
   it('renders the section heading 本人確認方法', () => {
     render(<Step3IdentityVerification initialMethod={null} onProceed={noop} onBack={noop} />);
