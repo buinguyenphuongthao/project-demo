@@ -42,24 +42,25 @@ describe('Step3IdentityVerification', () => {
     expect(titles[1].compareDocumentPosition(titles[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('次へ buttons are disabled with no selection', () => {
+  it('次へ buttons have aria-disabled when no selection', () => {
     render(<Step3IdentityVerification initialMethod={null} onProceed={noop} onBack={noop} />);
     const btns = screen.getAllByRole('button', { name: '次へ' });
-    btns.forEach(btn => expect(btn).toBeDisabled());
+    btns.forEach(btn => expect(btn).toHaveAttribute('aria-disabled', 'true'));
   });
 
   it('shows validation hint when 次へ clicked without selection', () => {
     render(<Step3IdentityVerification initialMethod={null} onProceed={noop} onBack={noop} />);
     fireEvent.click(screen.getAllByRole('button', { name: '次へ' })[0]);
-    expect(screen.getByText('確認方法を選択してから次へお進みください。')).toBeInTheDocument();
+    const hints = screen.getAllByText('確認方法を選択してから次へお進みください。');
+    expect(hints.length).toBeGreaterThan(0);
   });
 
-  it('selecting a card enables 次へ and hides hint', () => {
+  it('selecting a card removes aria-disabled from 次へ and hides hint', () => {
     render(<Step3IdentityVerification initialMethod={null} onProceed={noop} onBack={noop} />);
     fireEvent.click(screen.getAllByRole('button', { name: '次へ' })[0]);
     fireEvent.click(screen.getByText('自撮り＋ICチップ読取'));
     const btns = screen.getAllByRole('button', { name: '次へ' });
-    btns.forEach(btn => expect(btn).not.toBeDisabled());
+    btns.forEach(btn => expect(btn).not.toHaveAttribute('aria-disabled'));
     expect(screen.queryByText('確認方法を選択してから次へお進みください。')).not.toBeInTheDocument();
   });
 
@@ -91,7 +92,7 @@ describe('Step3IdentityVerification', () => {
     const onProceed = vi.fn();
     render(<Step3IdentityVerification initialMethod="jpki" onProceed={onProceed} onBack={noop} />);
     const btns = screen.getAllByRole('button', { name: '次へ' });
-    btns.forEach(btn => expect(btn).not.toBeDisabled());
+    btns.forEach(btn => expect(btn).not.toHaveAttribute('aria-disabled'));
     fireEvent.click(btns[0]);
     expect(onProceed).toHaveBeenCalledWith('jpki');
   });

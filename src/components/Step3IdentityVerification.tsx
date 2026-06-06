@@ -79,23 +79,27 @@ export function Step3IdentityVerification({ initialMethod, onProceed, onBack }: 
     setShowHint(false);
   }
 
+  const hint = showHint && (
+    <p className="text-xs text-[#F36B6B] font-medium text-center mb-3">
+      確認方法を選択してから次へお進みください。
+    </p>
+  );
+
   const nextBtn = (fullWidth: boolean) => (
-    /* fieldset[disabled] makes toBeDisabled() pass while keeping onClick callable via fireEvent */
-    <fieldset disabled={!selected} className="border-0 p-0 m-0 min-w-0">
-      <button
-        type="button"
-        onClick={handleNext}
-        className={[
-          'button-background rounded-[10px] py-4',
-          'text-[17px] font-bold tracking-wide text-white',
-          'transition-[colors,box-shadow,transform] duration-200',
-          selected ? 'bg-accent-primary cursor-pointer' : 'bg-gray-300 cursor-not-allowed',
-          fullWidth ? 'w-full' : 'w-full max-w-[480px]',
-        ].join(' ')}
-      >
-        次へ
-      </button>
-    </fieldset>
+    <button
+      type="button"
+      onClick={handleNext}
+      aria-disabled={!selected ? 'true' : undefined}
+      className={[
+        'button-background rounded-[10px] py-4',
+        'text-[17px] font-bold tracking-wide text-white',
+        'transition-[colors,box-shadow,transform] duration-200',
+        selected ? 'bg-accent-primary cursor-pointer' : 'bg-gray-300 cursor-not-allowed',
+        fullWidth ? 'w-full' : 'w-full max-w-[480px]',
+      ].join(' ')}
+    >
+      次へ
+    </button>
   );
 
   const backBtn = (extraClass = '') => (
@@ -215,15 +219,9 @@ export function Step3IdentityVerification({ initialMethod, onProceed, onBack }: 
             })}
           </div>
 
-          {/* Validation hint — rendered once, visible on both breakpoints */}
-          {showHint && (
-            <p className="text-xs text-[#F36B6B] font-medium text-center mb-3">
-              確認方法を選択してから次へお進みください。
-            </p>
-          )}
-
           {/* CTA — desktop */}
           <div className="hidden sm:flex flex-col items-center gap-3">
+            {hint}
             {nextBtn(false)}
             {backBtn()}
           </div>
@@ -233,6 +231,7 @@ export function Step3IdentityVerification({ initialMethod, onProceed, onBack }: 
 
       {/* Sticky CTA — mobile */}
       <div className="sm:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 px-5 py-3.5">
+        {hint}
         {nextBtn(true)}
         {backBtn('w-full mt-2 py-1.5 block text-center')}
       </div>
