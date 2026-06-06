@@ -86,6 +86,7 @@ export function StepEkycIntro({ onProceed, onBack }: Props) {
               className="w-full flex items-center gap-2 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors"
               onClick={() => setExpanded(v => !v)}
               aria-expanded={expanded}
+              aria-controls="ekyc-body"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                 stroke="var(--color-accent-primary)" strokeWidth="2"
@@ -111,6 +112,7 @@ export function StepEkycIntro({ onProceed, onBack }: Props) {
 
             {/* Collapsible body — collapsed height shows ~2 lines */}
             <div
+              id="ekyc-body"
               className="relative border-t border-gray-100"
               style={{
                 maxHeight: expanded ? '240px' : '58px',
@@ -131,7 +133,7 @@ export function StepEkycIntro({ onProceed, onBack }: Props) {
               )}
             </div>
 
-            {/* Expand/collapse toggle row */}
+            {/* Bottom toggle row — mirrors header click for users who read the section title and want to expand via the explicit toggle */}
             <button
               type="button"
               onClick={() => setExpanded(v => !v)}
@@ -182,12 +184,14 @@ export function StepEkycIntro({ onProceed, onBack }: Props) {
           {/* CTA — desktop only */}
           <div className="hidden sm:flex flex-col items-center gap-3">
             <button
+              type="button"
               className="button-background w-full max-w-[480px] rounded-[10px] py-4 text-[17px] font-bold tracking-wide text-white bg-accent-primary transition-[colors,box-shadow,transform] duration-200"
               onClick={onProceed}
             >
               本人確認へ進む
             </button>
             <button
+              type="button"
               className="text-sm text-gray-500 underline underline-offset-2 hover:text-gray-800 transition-colors"
               onClick={onBack}
             >
@@ -201,12 +205,14 @@ export function StepEkycIntro({ onProceed, onBack }: Props) {
       {/* Sticky CTA — mobile only */}
       <div className="sm:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 px-5 py-3.5">
         <button
+          type="button"
           className="button-background w-full rounded-[10px] py-4 text-[17px] font-bold text-white bg-accent-primary transition-[colors,box-shadow,transform] duration-200"
           onClick={onProceed}
         >
           本人確認へ進む
         </button>
         <button
+          type="button"
           className="w-full mt-2 py-1.5 text-sm text-gray-500 underline underline-offset-2"
           onClick={onBack}
         >
