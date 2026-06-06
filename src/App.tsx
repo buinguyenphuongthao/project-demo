@@ -69,24 +69,29 @@ export default function App() {
     );
   }
 
+  if (step === "step3") {
+    return (
+      <Step3IdentityVerification
+        initialMethod={identityMethod}
+        onChange={setIdentityMethod}
+        onProceed={(method) => {
+          setIdentityMethod(method);
+          setStep("qr");
+        }}
+        onBack={() => setStep("step2")}
+      />
+    );
+  }
+
   if (step === "qr") {
     return (
       <StepQrTransition
+        // TODO: replace with real completion handler
         onProceed={() => alert("✅ 本人確認手続きを完了しました。")}
         onBack={() => setStep("step3")}
       />
     );
   }
 
-  return (
-    <Step3IdentityVerification
-      initialMethod={identityMethod}
-      onChange={setIdentityMethod}
-      onProceed={(method) => {
-        setIdentityMethod(method);
-        setStep("qr");
-      }}
-      onBack={() => setStep("step2")}
-    />
-  );
+  return null;
 }
