@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { ConsentGate } from "./components/ConsentGate";
+import { StepEkycIntro } from "./components/StepEkycIntro";
 import { Step1PersonalInfo } from "./components/Step1PersonalInfo";
 import { Step2BankRegistration } from "./components/Step2BankRegistration";
 import type { PersonalInfoForm, BankInfoForm } from "./types";
 
-type AppStep = "consent" | "step1" | "step2";
+type AppStep = "consent" | "ekyc" | "step1" | "step2";
 
 const emptyPersonalInfo: PersonalInfoForm = {
   name: "", kana: "", dobYear: "", dobMonth: "", dobDay: "",
@@ -26,7 +27,16 @@ export default function App() {
   const [bankInfo, setBankInfo]         = useState<BankInfoForm>(emptyBankInfo);
 
   if (step === "consent") {
-    return <ConsentGate onProceed={() => setStep("step1")} />;
+    return <ConsentGate onProceed={() => setStep("ekyc")} />;
+  }
+
+  if (step === "ekyc") {
+    return (
+      <StepEkycIntro
+        onProceed={() => setStep("step1")}
+        onBack={() => setStep("consent")}
+      />
+    );
   }
 
   if (step === "step1") {
@@ -39,7 +49,7 @@ export default function App() {
           setBankInfo(prev => ({ ...prev, holder: prev.holder || data.kana }));
           setStep("step2");
         }}
-        onBack={() => setStep("consent")}
+        onBack={() => setStep("ekyc")}
       />
     );
   }
