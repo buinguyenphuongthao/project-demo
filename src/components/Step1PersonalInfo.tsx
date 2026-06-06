@@ -297,8 +297,11 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
       </div>
 
       {/* ── Scrollable content ── */}
-      <main className="flex-1 flex justify-center px-4 py-5 pb-24 sm:pb-5">
-        <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-8">
+      <main className="flex-1 flex justify-center py-5 pb-24 sm:pb-5">
+        <div
+          className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-8"
+          style={{ width: 'clamp(320px, calc(100% - 2rem), 560px)', margin: '0 auto', boxSizing: 'border-box' }}
+        >
 
           {/* Section heading */}
           <h1 className="flex items-center gap-2 text-xl font-bold text-[#1F2329] mb-5">
