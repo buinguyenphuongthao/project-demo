@@ -46,20 +46,6 @@ export function StepConsentComplete({ onProceed }: Props) {
             </p>
           </div>
 
-          {/* Tester-only navigation */}
-          <div className="flex flex-col items-center mb-9">
-            <button
-              type="button"
-              className="w-full max-w-[400px] rounded-[10px] py-3.5 text-[15px] font-bold border-2 border-accent-primary text-accent-primary-depth bg-white transition-colors duration-150 hover:bg-[#f0faf0]"
-              onClick={onProceed}
-            >
-              eKYC画面へ進む（テスター用）
-            </button>
-            <p className="mt-2.5 max-w-[400px] text-center text-[11px] text-gray-400 leading-relaxed">
-              ※ このボタンはデモ・テスト用です。実際のユーザーはメールのリンクからeKYC画面に遷移します。
-            </p>
-          </div>
-
           {/* Contact section */}
           <div className="flex items-center gap-2.5 mb-3.5">
             <span className="w-1 h-[15px] rounded-full bg-accent-primary flex-shrink-0" />
@@ -67,7 +53,7 @@ export function StepConsentComplete({ onProceed }: Props) {
             <span className="flex-1 h-px bg-gray-200" />
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 mb-9">
             <ContactCard
               icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>}
               value={<a href="tel:0120945991" className="text-base font-bold text-[#1F2329] hover:underline underline-offset-2">0120-945-991</a>}
@@ -81,6 +67,20 @@ export function StepConsentComplete({ onProceed }: Props) {
               hint="※ 返信にお時間をいただく場合がございます。お急ぎの場合はお電話ください。"
               emphasis="small"
             />
+          </div>
+
+          {/* Tester-only navigation */}
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              className="w-full max-w-[400px] rounded-[10px] py-3.5 text-[15px] font-bold border-2 border-accent-primary text-accent-primary-depth bg-white transition-colors duration-150 hover:bg-[#f0faf0]"
+              onClick={onProceed}
+            >
+              eKYC画面へ進む（テスター用）
+            </button>
+            <p className="mt-2.5 max-w-[400px] text-center text-[11px] text-gray-400 leading-relaxed">
+              ※ このボタンはデモ・テスト用です。実際のユーザーはメールのリンクからeKYC画面に遷移します。
+            </p>
           </div>
 
         </div>
