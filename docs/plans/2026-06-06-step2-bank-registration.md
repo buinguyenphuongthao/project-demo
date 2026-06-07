@@ -1,5 +1,89 @@
+# Step 2 Bank Registration — Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Add Step 2 (お振込み口座情報) to the tos-gate-demo React app, wired between Step 1 and a placeholder completion alert, with full form-state preservation across back-navigation.
+
+**Architecture:** Mirror `Step1PersonalInfo.tsx` exactly — one self-contained component file with local state, sticky progress header, white card body, sticky mobile CTA bar. The bank/branch section renders a toggle (name-search mode ↔ code-entry mode); each mode has its own search inputs with inline dropdowns and resolved-chip display. Shared type definitions live in `types.ts`. `App.tsx` owns navigation state and passes `initialData` down so values survive back/forward navigation. The account holder field is pre-filled from Step 1's kana on first visit and preserved thereafter.
+
+**Tech Stack:** React 19, TypeScript, Tailwind CSS v4, Vite 8, Noto Sans JP (already loaded). No test runner — verification is TypeScript type-check (`tsc --noEmit`) plus browser smoke-test.
+
+---
+
+## Design tokens (carry forward from Step 1)
+
+| Token | Value |
+|---|---|
+| Page bg | `bg-page` (`#f9f5ee`) |
+| Card bg | `bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)]` |
+| Input | `h-[52px] px-4 bg-white border border-gray-300 rounded-lg` + focus blue ring |
+| Required badge | `bg-[#F36B6B] text-white` red pill, 11 px |
+| Progress pill active | `bg-accent-primary` (green `#388e31`) |
+| Progress pill inactive | `bg-gray-300` |
+| Next button | `bg-accent-primary button-background` (same as Step 1) |
+
+---
+
+## Task 1 — Extend `types.ts` with bank-related interfaces
+
+**Files:**
+- Modify: `src/types.ts`
+
+**Step 1: Add the three interfaces**
+
+Append to the bottom of `src/types.ts`:
+
+```ts
+export interface BankEntry {
+  code: string;
+  name: string;
+  kana: string;
+}
+
+export interface BranchEntry {
+  code: string;
+  name: string;
+  kana: string;
+}
+
+export interface BankInfoForm {
+  holder: string;
+  bank: BankEntry | null;
+  branch: BranchEntry | null;
+  accountNumber: string;
+  appraisalNotify: 'required' | 'not-needed';
+}
+```
+
+**Step 2: Type-check**
+
+```bash
+cd /Users/phuongthao/Downloads/tos-gate-demo
+npx tsc --noEmit
+```
+
+Expected: no errors.
+
+**Step 3: Commit**
+
+```bash
+git add src/types.ts
+git commit -m "feat: add BankEntry, BranchEntry, BankInfoForm types"
+```
+
+---
+
+## Task 2 — Create `Step2BankRegistration.tsx`
+
+**Files:**
+- Create: `src/components/Step2BankRegistration.tsx`
+
+**Step 1: Create the file with mock data, shared atoms, and sub-components**
+
+Create `src/components/Step2BankRegistration.tsx` with the following complete content:
+
+```tsx
 import { useState, useRef } from "react";
-import { Languages, Hash } from "lucide-react";
 import type { BankInfoForm, BankEntry, BranchEntry } from "../types";
 import takakuLogo from "../assets/takaku_logo.svg";
 
@@ -48,20 +132,6 @@ function getBranches(bankCode: string): BranchEntry[] {
   return MOCK_BRANCHES[bankCode] ?? MOCK_BRANCHES['_default'];
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function normalizeNumeric(v: string, maxLen: number): string {
-  return v
-    .split('')
-    .map(ch => {
-      const code = ch.charCodeAt(0);
-      return code >= 0xFF10 && code <= 0xFF19 ? String.fromCharCode(code - 0xFEE0) : ch;
-    })
-    .join('')
-    .replace(/\D/g, '')
-    .slice(0, maxLen);
-}
-
 // ── Shared atoms ─────────────────────────────────────────────────────────────
 
 const INPUT = [
@@ -83,21 +153,17 @@ function ReqBadge() {
 }
 
 function Field({
-  label, badge, error, htmlFor, children,
+  label, badge, error, children,
 }: {
   label: string;
   badge?: 'required';
   error?: string;
-  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="mb-5">
       <div className="flex items-center gap-2 mb-2">
-        {htmlFor
-          ? <label htmlFor={htmlFor} className="text-base font-normal text-[#1F2329]">{label}</label>
-          : <span className="text-base font-normal text-[#1F2329]">{label}</span>
-        }
+        <span className="text-base font-normal text-[#1F2329]">{label}</span>
         {badge === 'required' && <ReqBadge />}
       </div>
       {children}
@@ -112,19 +178,15 @@ function ResolvedChip({ name, code, onClear }: { name: string; code: string; onC
   return (
     <div className="flex items-center justify-between h-[52px] px-4 bg-white border border-gray-300 rounded-lg text-[#1F2329]">
       <span className="text-base">{name}</span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <span className="text-xs text-gray-400 font-mono">{code}</span>
         <button
           type="button"
           onClick={onClear}
-          className="flex items-center justify-center w-8 h-8 -mr-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
+          className="text-gray-400 hover:text-gray-700 text-xl leading-none transition-colors"
           aria-label="クリア"
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <line x1="1" y1="1" x2="11" y2="11"/>
-            <line x1="11" y1="1" x2="1" y2="11"/>
-          </svg>
+          ×
         </button>
       </div>
     </div>
@@ -143,9 +205,7 @@ function Dropdown({ items, onSelect }: {
 }) {
   return (
     <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 rounded-b-lg max-h-44 overflow-y-auto z-30 shadow-md">
-      {items.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-gray-400 text-center">見つかりませんでした</p>
-      ) : items.map(item => (
+      {items.map(item => (
         <button
           key={item.code}
           type="button"
@@ -193,8 +253,6 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
   const [accountNumber,   setAccountNumber]   = useState(initialData.accountNumber);
   const [appraisalNotify, setAppraisalNotify] = useState<'required' | 'not-needed'>(initialData.appraisalNotify);
   const [errors, setErrors]                   = useState<Record<string, string>>({});
-
-  const isComposing = useRef(false);
 
   // Scroll-to-first-error refs
   const holderRef  = useRef<HTMLDivElement>(null);
@@ -259,17 +317,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
   // ── Code-mode handlers ────────────────────────────────────────────────────
 
   function onBankCodeChange(raw: string) {
-    if (isComposing.current) { setBankCodeQ(raw); return; }
-    const v = normalizeNumeric(raw, 4);
-    setBankCodeQ(v);
-    setSelectedBank(null);
-    setSelectedBranch(null);
-    setBranchCodeQ('');
-    setBankCodeOpen(v.length > 0);
-  }
-  function handleBankCodeCompositionEnd(e: React.CompositionEvent<HTMLInputElement>) {
-    isComposing.current = false;
-    const v = normalizeNumeric(e.currentTarget.value, 4);
+    const v = raw.replace(/\D/g, '').slice(0, 4);
     setBankCodeQ(v);
     setSelectedBank(null);
     setSelectedBranch(null);
@@ -291,15 +339,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
   }
 
   function onBranchCodeChange(raw: string) {
-    if (isComposing.current) { setBranchCodeQ(raw); return; }
-    const v = normalizeNumeric(raw, 3);
-    setBranchCodeQ(v);
-    setSelectedBranch(null);
-    setBranchCodeOpen(v.length > 0 && selectedBank !== null);
-  }
-  function handleBranchCodeCompositionEnd(e: React.CompositionEvent<HTMLInputElement>) {
-    isComposing.current = false;
-    const v = normalizeNumeric(e.currentTarget.value, 3);
+    const v = raw.replace(/\D/g, '').slice(0, 3);
     setBranchCodeQ(v);
     setSelectedBranch(null);
     setBranchCodeOpen(v.length > 0 && selectedBank !== null);
@@ -317,16 +357,9 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
   // ── Account number ────────────────────────────────────────────────────────
 
   function onAccountChange(raw: string) {
-    if (isComposing.current) { setAccountNumber(raw); return; }
-    const v = normalizeNumeric(raw, 7);
+    const v = raw.replace(/\D/g, '').slice(0, 7);
     setAccountNumber(v);
     if (errors.accountNumber) setErrors(e => ({ ...e, accountNumber: '' }));
-  }
-  function handleAccountCompositionEnd(e: React.CompositionEvent<HTMLInputElement>) {
-    isComposing.current = false;
-    const v = normalizeNumeric(e.currentTarget.value, 7);
-    setAccountNumber(v);
-    if (errors.accountNumber) setErrors(er => ({ ...er, accountNumber: '' }));
   }
 
   // ── Validation and submit ─────────────────────────────────────────────────
@@ -375,8 +408,8 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
     <div className="min-h-screen flex flex-col bg-page" style={{ fontFamily: 'var(--font-base)' }}>
 
       {/* Sticky progress header */}
-      <div className="sticky top-0 z-20 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] pt-3 pb-3">
-        <div className="flex items-center justify-between" style={{ width: 'clamp(320px, calc(100% - 2rem), 560px)', margin: '0 auto' }}>
+      <div className="sticky top-0 z-20 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] px-5 pt-3 pb-3">
+        <div className="mx-auto max-w-3xl flex items-center justify-between">
           <img src={takakuLogo} alt="高く売れるドットコム" className="h-[64px]" />
           <div className="text-right">
             <p className="text-xs text-gray-500 mb-1.5">4ステップ中 2</p>
@@ -393,11 +426,8 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
       </div>
 
       {/* Scrollable content */}
-      <main className="flex-1 flex justify-center py-5 pb-24 sm:pb-5">
-        <div
-          className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-8"
-          style={{ width: 'clamp(320px, calc(100% - 2rem), 560px)', margin: '0 auto', boxSizing: 'border-box' }}
-        >
+      <main className="flex-1 flex justify-center px-4 py-5 pb-24 sm:pb-5">
+        <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-8">
 
           {/* Section heading */}
           <h1 className="flex items-center gap-2 text-xl font-bold text-[#1F2329] mb-5">
@@ -413,9 +443,8 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
 
           {/* ── 口座名義人 ── */}
           <div ref={holderRef}>
-            <Field label="口座名義人" badge="required" error={errors.holder} htmlFor="holder">
+            <Field label="口座名義人" badge="required" error={errors.holder}>
               <input
-                id="holder"
                 className={INPUT}
                 type="text"
                 placeholder="例）カイトリ タロウ"
@@ -426,7 +455,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                   if (errors.holder) setErrors(er => ({ ...er, holder: '' }));
                 }}
               />
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-xs text-gray-500">
                 通帳・キャッシュカードと同じカタカナ氏名をご入力ください。
               </p>
             </Field>
@@ -451,7 +480,10 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                     : 'bg-white text-gray-500 hover:bg-gray-50',
                 ].join(' ')}
               >
-                <Languages size={16} aria-hidden />
+                <span className={searchMode === 'name' ? 'text-white' : 'text-[#4A7BF7]'}
+                  style={{ fontSize: '16px', fontWeight: 400 }}>
+                  あ
+                </span>
                 銀行名
               </button>
               <button
@@ -465,12 +497,12 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                     : 'bg-white text-gray-500 hover:bg-gray-50',
                 ].join(' ')}
               >
-                <Hash size={16} aria-hidden />
+                <span className="font-mono text-sm">123</span>
                 銀行コード
               </button>
             </div>
 
-            <p className="text-sm text-gray-500 mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               {searchMode === 'name'
                 ? '銀行名またはかなで検索してください。'
                 : '通帳またはキャッシュカードに記載されているコードを入力してください。'}
@@ -480,7 +512,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
             {searchMode === 'name' && (
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">銀行名</p>
+                  <p className="text-xs text-gray-500 mb-1">銀行名</p>
                   {selectedBank ? (
                     <ResolvedChip name={selectedBank.name} code={selectedBank.code} onClear={clearBankByName} />
                   ) : (
@@ -493,14 +525,14 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                         onChange={e => onBankNameChange(e.target.value)}
                         onBlur={() => setTimeout(() => setBankNameOpen(false), 150)}
                       />
-                      {bankNameOpen && (
+                      {bankNameOpen && bankNameResults.length > 0 && (
                         <Dropdown items={bankNameResults} onSelect={selectBankByName} />
                       )}
                     </div>
                   )}
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">支店名</p>
+                  <p className="text-xs text-gray-500 mb-1">支店名</p>
                   {selectedBranch ? (
                     <ResolvedChip name={selectedBranch.name} code={selectedBranch.code} onClear={clearBranchByName} />
                   ) : (
@@ -514,7 +546,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                         onChange={e => onBranchNameChange(e.target.value)}
                         onBlur={() => setTimeout(() => setBranchNameOpen(false), 150)}
                       />
-                      {branchNameOpen && (
+                      {branchNameOpen && branchNameResults.length > 0 && (
                         <Dropdown items={branchNameResults} onSelect={selectBranchByName} />
                       )}
                     </div>
@@ -527,7 +559,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
             {searchMode === 'code' && (
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">銀行コード</p>
+                  <p className="text-xs text-gray-500 mb-1">銀行コード</p>
                   {selectedBank ? (
                     <ResolvedChip name={selectedBank.name} code={selectedBank.code} onClear={clearBankByCode} />
                   ) : (
@@ -541,17 +573,15 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                         value={bankCodeQ}
                         onChange={e => onBankCodeChange(e.target.value)}
                         onBlur={() => setTimeout(() => setBankCodeOpen(false), 150)}
-                        onCompositionStart={() => { isComposing.current = true; }}
-                        onCompositionEnd={handleBankCodeCompositionEnd}
                       />
-                      {bankCodeOpen && (
+                      {bankCodeOpen && bankCodeResults.length > 0 && (
                         <Dropdown items={bankCodeResults} onSelect={selectBankByCode} />
                       )}
                     </div>
                   )}
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">支店コード</p>
+                  <p className="text-xs text-gray-500 mb-1">支店コード</p>
                   {selectedBranch ? (
                     <ResolvedChip name={selectedBranch.name} code={selectedBranch.code} onClear={clearBranchByCode} />
                   ) : (
@@ -566,10 +596,8 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                         disabled={!selectedBank}
                         onChange={e => onBranchCodeChange(e.target.value)}
                         onBlur={() => setTimeout(() => setBranchCodeOpen(false), 150)}
-                        onCompositionStart={() => { isComposing.current = true; }}
-                        onCompositionEnd={handleBranchCodeCompositionEnd}
                       />
-                      {branchCodeOpen && (
+                      {branchCodeOpen && branchCodeResults.length > 0 && (
                         <Dropdown items={branchCodeResults} onSelect={selectBranchByCode} />
                       )}
                     </div>
@@ -584,9 +612,8 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
 
           {/* ── 口座番号 ── */}
           <div ref={accountRef}>
-            <Field label="口座番号" badge="required" error={errors.accountNumber} htmlFor="accountNumber">
+            <Field label="口座番号" badge="required" error={errors.accountNumber}>
               <input
-                id="accountNumber"
                 className={INPUT}
                 type="text"
                 inputMode="numeric"
@@ -594,10 +621,8 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                 placeholder="例：1234567"
                 value={accountNumber}
                 onChange={e => onAccountChange(e.target.value)}
-                onCompositionStart={() => { isComposing.current = true; }}
-                onCompositionEnd={handleAccountCompositionEnd}
               />
-              <p className="mt-1 text-sm text-gray-500">※ 普通預金口座のみ対応</p>
+              <p className="mt-1 text-xs text-gray-500">※ 普通預金口座のみ対応</p>
             </Field>
           </div>
 
@@ -633,7 +658,7 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-xs text-gray-500">
               ※ 不要を選択した場合、最終査定後に通知なく直接お支払いとなります。
             </p>
           </div>
@@ -673,7 +698,6 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
             isAllValid ? 'bg-accent-primary cursor-pointer' : 'bg-gray-300 cursor-not-allowed',
           ].join(' ')}
           onClick={handleNext}
-          disabled={!isAllValid}
         >
           次へ
         </button>
@@ -687,3 +711,138 @@ export function Step2BankRegistration({ initialData, onProceed, onBack }: Props)
     </div>
   );
 }
+```
+
+**Step 2: Type-check**
+
+```bash
+npx tsc --noEmit
+```
+
+Expected: no errors. If you see errors about `border-accent-primary` or `bg-accent-primary` — those are Tailwind CSS v4 custom tokens defined in `src/index.css` and are not TypeScript errors; only fix TypeScript errors.
+
+**Step 3: Commit**
+
+```bash
+git add src/components/Step2BankRegistration.tsx
+git commit -m "feat: add Step2BankRegistration component"
+```
+
+---
+
+## Task 3 — Wire Step 2 into `App.tsx`
+
+**Files:**
+- Modify: `src/App.tsx`
+
+**Step 1: Replace the full contents of `src/App.tsx`**
+
+```tsx
+import { useState } from "react";
+import { ConsentGate } from "./components/ConsentGate";
+import { Step1PersonalInfo } from "./components/Step1PersonalInfo";
+import { Step2BankRegistration } from "./components/Step2BankRegistration";
+import type { PersonalInfoForm, BankInfoForm } from "./types";
+
+type AppStep = "consent" | "step1" | "step2";
+
+const emptyPersonalInfo: PersonalInfoForm = {
+  name: "", kana: "", dobYear: "", dobMonth: "", dobDay: "",
+  postalCode: "", prefecture: "", address: "", occupation: "",
+  email: "", invoiceNotIssuer: false, invoiceNumber: "",
+};
+
+const emptyBankInfo: BankInfoForm = {
+  holder: "",
+  bank: null,
+  branch: null,
+  accountNumber: "",
+  appraisalNotify: "required",
+};
+
+export default function App() {
+  const [step, setStep]               = useState<AppStep>("consent");
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfoForm>(emptyPersonalInfo);
+  const [bankInfo, setBankInfo]         = useState<BankInfoForm>(emptyBankInfo);
+
+  if (step === "consent") {
+    return <ConsentGate onProceed={() => setStep("step1")} />;
+  }
+
+  if (step === "step1") {
+    return (
+      <Step1PersonalInfo
+        initialData={personalInfo}
+        onProceed={(data) => {
+          setPersonalInfo(data);
+          // Pre-fill holder from kana on first visit; preserve whatever was entered on return visits
+          setBankInfo(prev => ({ ...prev, holder: prev.holder || data.kana }));
+          setStep("step2");
+        }}
+        onBack={() => setStep("consent")}
+      />
+    );
+  }
+
+  return (
+    <Step2BankRegistration
+      initialData={bankInfo}
+      onProceed={(data) => {
+        setBankInfo(data);
+        alert(
+          "✅ ステップ2完了。\n" +
+          "銀行：" + data.bank!.name + " (" + data.bank!.code + ")\n" +
+          "支店：" + data.branch!.name + " (" + data.branch!.code + ")\n" +
+          "口座番号：" + data.accountNumber
+        );
+      }}
+      onBack={() => setStep("step1")}
+    />
+  );
+}
+```
+
+**Step 2: Type-check**
+
+```bash
+npx tsc --noEmit
+```
+
+Expected: no errors.
+
+**Step 3: Start dev server and smoke-test**
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:5173` and verify:
+
+| Scenario | Expected |
+|---|---|
+| Consent → Step 1 → fill all fields → Next | Lands on Step 2 with progress showing 2/4 |
+| Step 2: account holder pre-filled | Shows kana from Step 1 |
+| Step 2: Back | Returns to Step 1 with all Step 1 fields intact |
+| Step 1 → Next again | Step 2 shows previously entered holder value (not blanked) |
+| Step 2: Next with empty fields | Errors shown, scroll to first error |
+| Step 2 name mode: type "みず" | みずほ銀行 appears in dropdown |
+| Select みずほ銀行 | Resolved chip appears; branch field unlocks |
+| Type branch query | Branch dropdown shows filtered results |
+| Select branch | Branch resolved chip appears; Next button activates when acct# = 7 digits |
+| Step 2 code mode toggle | Clears bank/branch, switches helper text |
+| Type "011" in bank code | 秋田銀行 (0119) appears |
+| Select → type "00" in branch code | Branch list filtered by prefix |
+| Complete all fields → Next | Alert shows bank name, branch name, account number |
+
+**Step 4: Commit**
+
+```bash
+git add src/App.tsx
+git commit -m "feat: wire Step2BankRegistration into app flow"
+```
+
+---
+
+## Done
+
+All three tasks complete. The combined demo HTML (`/Desktop/consent-form-ja/consent-form-complete-flow-ja.html`) already references `step2-bank-registration-ja.html` at nav index 4 — no changes needed there.

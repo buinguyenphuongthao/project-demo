@@ -35,9 +35,14 @@ describe('StepQrTransition', () => {
     expect(screen.getByText(/このQRコードは10分間有効です/)).toBeInTheDocument();
   });
 
-  it('does NOT render any step-progress indicator', () => {
+  it('renders the 本人確認方法 section heading', () => {
     render(<StepQrTransition onProceed={vi.fn()} onBack={vi.fn()} />);
-    expect(screen.queryByText(/ステップ中/)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /本人確認方法/ })).toBeInTheDocument();
+  });
+
+  it('renders the step indicator 4ステップ中 3', () => {
+    render(<StepQrTransition onProceed={vi.fn()} onBack={vi.fn()} />);
+    expect(screen.getByText('4ステップ中 3')).toBeInTheDocument();
   });
 
   it('calls onProceed when 次へ is clicked', () => {

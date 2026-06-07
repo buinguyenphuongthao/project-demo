@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { VersionSelectEntry, type DemoFlowVersion } from "./components/VersionSelectEntry";
 import { ConsentGate } from "./components/ConsentGate";
+import { StepConsentComplete } from "./components/StepConsentComplete";
 import { StepEkycIntro } from "./components/StepEkycIntro";
 import { Step1PersonalInfo } from "./components/Step1PersonalInfo";
 import { Step2BankRegistration } from "./components/Step2BankRegistration";
@@ -9,7 +10,7 @@ import { StepQrTransition } from "./components/StepQrTransition";
 import { StepComplete } from "./components/StepComplete";
 import type { PersonalInfoForm, BankInfoForm, IdentityVerificationMethod } from "./types";
 
-type AppStep = "entry" | "consent" | "ekyc" | "step1" | "step2" | "step3" | "qr" | "complete";
+type AppStep = "entry" | "consent" | "consent-complete" | "ekyc" | "step1" | "step2" | "step3" | "qr" | "complete";
 
 const emptyPersonalInfo: PersonalInfoForm = {
   name: "", kana: "", dobYear: "", dobMonth: "", dobDay: "",
@@ -44,7 +45,11 @@ export default function App() {
   }
 
   if (step === "consent") {
-    return <ConsentGate onProceed={() => setStep("ekyc")} />;
+    return <ConsentGate onProceed={() => setStep("consent-complete")} />;
+  }
+
+  if (step === "consent-complete") {
+    return <StepConsentComplete onProceed={() => setStep("ekyc")} />;
   }
 
   if (step === "ekyc") {

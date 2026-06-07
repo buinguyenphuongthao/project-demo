@@ -37,3 +37,5 @@ export interface BankInfoForm {
   accountNumber: string;
   appraisalNotify: 'required' | 'not-needed';
 }
+
+export type IdentityVerificationMethod = 'ic-chip' | 'jpki' | 'selfie-doc';

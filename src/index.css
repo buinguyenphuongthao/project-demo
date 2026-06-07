@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --color-page: #f9f5ee;
+  --color-page-md: #eeeae3;
+  --color-surface: #ffffff;
+  --color-surface-zebra: #fffaea;
+  --color-accent-primary: #388e31;
+  --color-accent-primary-depth: #1d7116;
+  --color-accent-secondary: #f3840d;
+  --color-accent-secondary-depth: #c46805;
+  --color-badge: #df4726;
+  --color-link: #2383e2;
+  --color-option-selected: #deecfb;
+  --color-option-bg: #f0f0f0;
+  --font-base: "Noto Sans JP", "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", "Meiryo", sans-serif;
+}
+
+:root { font-family: var(--font-base); line-height: 1.5; font-size: 15px; color: #000; }
+body { margin: 0; background-color: var(--color-page); }
+@media (min-width: 768px) { body { background-color: var(--color-page-md); } }
+
+/* physical button: arrow icon + press gesture (from design reference) */
+.button-background {
+  background-position: right 24px top 50%;
+  background-image: url("https://www.takakuureru.com/img/common/arrow_right_white.svg");
+  background-repeat: no-repeat;
+  color: white;
+}
+.button-background:hover { box-shadow: inset 0 5px 10px rgba(0,0,0,0.3); }
+.button-background:focus-visible { outline: 3px solid var(--color-accent-primary); outline-offset: 3px; }
+@media (min-width: 768px) { .button-background { background-position: right 20px top 50%; } }
+.button-background:active { transform: translateY(4px); box-shadow: none !important; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInStep {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}

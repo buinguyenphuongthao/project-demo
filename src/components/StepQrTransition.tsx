@@ -1,66 +1,57 @@
-import { HeaderLogo } from "./HeaderLogo";
+import { useState, useEffect } from "react";
+import takakuLogo from "../assets/takaku_logo.svg";
 
 interface Props {
   onProceed: () => void;
   onBack: () => void;
 }
 
-// LCG pseudo-random generator (seed=42) for QR data area fill
-function lcgRandom(seed: number): () => boolean {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    return (s >>> 0) % 2 === 0;
-  };
-}
+// Build a 21×21 boolean flat array representing a QR v1-like placeholder.
+// Proper 7×7 finder patterns at TL/TR/BL + timing strips + LCG data fill.
+function buildQrGrid(): boolean[] {
+  const SIZE = 21;
+  const cells = new Array<boolean>(SIZE * SIZE).fill(false);
+  const at = (r: number, c: number) => r * SIZE + c;
 
-// Build a 13×13 boolean grid representing a minimal QR-like pattern
-function buildQrGrid(): boolean[][] {
-  const SIZE = 13;
-  const grid: boolean[][] = Array.from({ length: SIZE }, () => Array(SIZE).fill(false));
-
-  // Finder pattern helper: fills a 5×5 pattern at (r, c)
-  function finder(r: number, c: number) {
-    for (let dr = 0; dr < 5; dr++) {
-      for (let dc = 0; dc < 5; dc++) {
-        const isOuter = dr === 0 || dr === 4 || dc === 0 || dc === 4;
-        const isInner = dr === 2 && dc === 2;
-        grid[r + dr][c + dc] = isOuter || isInner;
+  function finder(sr: number, sc: number) {
+    for (let r = sr; r < sr + 7; r++) {
+      for (let c = sc; c < sc + 7; c++) {
+        const lr = r - sr, lc = c - sc;
+        const outer = lr === 0 || lr === 6 || lc === 0 || lc === 6;
+        const inner = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
+        cells[at(r, c)] = outer || inner;
       }
     }
   }
 
-  // Top-left finder at (0, 0)
-  finder(0, 0);
-  // Top-right finder at (0, 8)
-  finder(0, 8);
-  // Bottom-left finder at (8, 0)
-  finder(8, 0);
+  finder(0, 0);   // top-left
+  finder(0, 14);  // top-right
+  finder(14, 0);  // bottom-left
 
-  // Timing patterns: row 6 and col 6 (alternating, between finders)
-  for (let i = 5; i < 8; i++) {
-    grid[6][i] = i % 2 === 0;
-    grid[i][6] = i % 2 === 0;
+  // Timing strips between finders (row 6 and col 6, cols/rows 8–12)
+  for (let i = 8; i <= 12; i++) {
+    cells[at(6, i)] = i % 2 === 0;
+    cells[at(i, 6)] = i % 2 === 0;
   }
 
-  // Fill data area with pseudo-random LCG
-  const rand = lcgRandom(42);
+  let seed = 42;
+  const rand = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed > 0x7fffffff;
+  };
+
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
-      // Skip finder pattern zones and timing rows/cols
-      const inTopLeft = r < 6 && c < 6;
-      const inTopRight = r < 6 && c >= 7;
-      const inBottomLeft = r >= 7 && c < 6;
-      const onTiming = r === 6 || c === 6;
-      if (inTopLeft || inTopRight || inBottomLeft || onTiming) {
-        rand(); // consume RNG to keep sequence stable
-        continue;
-      }
-      grid[r][c] = rand();
+      const inTL = r <= 7 && c <= 7;
+      const inTR = r <= 7 && c >= 13;
+      const inBL = r >= 13 && c <= 7;
+      const onTiming = (r === 6 && c >= 8 && c <= 12) || (c === 6 && r >= 8 && r <= 12);
+      if (inTL || inTR || inBL || onTiming) { rand(); continue; }
+      cells[at(r, c)] = rand();
     }
   }
 
-  return grid;
+  return cells;
 }
 
 const QR_GRID = buildQrGrid();
@@ -92,15 +83,52 @@ const backBtn = (onBack: () => void, extraClass = "") => (
 );
 
 export function StepQrTransition({ onProceed, onBack }: Props) {
+  const [timerSecs, setTimerSecs] = useState(600);
+  const [timerStarted, setTimerStarted] = useState(false);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    const startTimeout = setTimeout(() => {
+      setTimerStarted(true);
+      interval = setInterval(() => {
+        setTimerSecs(s => {
+          if (s <= 1) { clearInterval(interval); return 0; }
+          return s - 1;
+        });
+      }, 1000);
+    }, 5000);
+    return () => {
+      clearTimeout(startTimeout);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const timerText = !timerStarted
+    ? 'このQRコードは10分間有効です'
+    : timerSecs === 0
+      ? 'QRコードの有効期限が切れました'
+      : `このQRコードは ${Math.floor(timerSecs / 60)}:${String(timerSecs % 60).padStart(2, '0')} 後に期限切れになります`;
+  const timerExpired = timerStarted && timerSecs === 0;
+
   return (
     <div className="min-h-screen flex flex-col bg-page" style={{ fontFamily: "var(--font-base)" }}>
 
-      {/* Sticky logo-only header */}
-      <div className="sticky top-0 z-20 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] py-2">
-        <div
-          style={{ width: "clamp(320px, calc(100% - 2rem), 560px)", margin: "0 auto" }}
-        >
-          <HeaderLogo />
+      {/* Sticky progress header — same as Step 3 */}
+      <div className="sticky top-0 z-20 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] pt-3 pb-3">
+        <div className="flex items-center justify-between"
+          style={{ width: "clamp(320px, calc(100% - 2rem), 560px)", margin: "0 auto" }}>
+          <img src={takakuLogo} alt="高く売れるドットコム" className="h-[64px]" />
+          <div className="text-right">
+            <p className="text-xs text-gray-500 mb-1.5">4ステップ中 3</p>
+            <div className="flex gap-1.5">
+              {[0, 1, 2, 3].map(i => (
+                <div
+                  key={i}
+                  className={`w-12 h-2 rounded-full transition-colors ${i <= 2 ? "bg-accent-primary" : "bg-gray-300"}`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -108,107 +136,121 @@ export function StepQrTransition({ onProceed, onBack }: Props) {
       <main className="flex-1 flex justify-center py-5 pb-24 sm:pb-5">
         <div
           className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-8"
-          style={{ width: "clamp(320px, calc(100% - 2rem), 560px)", margin: "0 auto", boxSizing: "border-box" }}
+          style={{ width: "clamp(320px, calc(100% - 2rem), 560px)", margin: "0 auto", boxSizing: "border-box", animation: "slideUp 0.35s cubic-bezier(0.22,1,0.36,1) both" }}
         >
 
-          {/* Heading + subtitle */}
-          <h1 className="text-xl font-bold text-[#1F2329] text-center mb-2">
-            スマートフォンで本人確認を行ってください
+          {/* Section heading — matches Step 3 exactly */}
+          <h1 className="flex items-center gap-2 text-xl font-bold text-[#1F2329] mb-5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="var(--color-accent-primary)" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            本人確認方法
           </h1>
-          <p className="text-sm text-gray-500 leading-relaxed text-center mb-6">
+          <div className="h-px bg-gray-200 mb-5" />
+
+          {/* QR sub-heading + subtitle */}
+          <h2 className="text-base font-bold text-[#1F2329] text-center mb-1">
+            スマートフォンで本人確認を行ってください
+          </h2>
+          <p className="text-sm text-gray-500 leading-relaxed text-center mb-4">
             この手順はスマートフォンで完了する必要があります。
           </p>
 
           {/* Instruction steps */}
-          <ol className="flex flex-col gap-4 mb-6">
-            {/* Step 1 */}
-            <li className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-[11px] font-bold text-[#1F2329]">1</span>
+          <div role="list" aria-label="手順" style={{ marginBottom: 22 }}>
+            {/* Step 1: camera */}
+            <div role="listitem" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingBottom: 12, paddingTop: 2, animation: 'fadeInStep 0.4s cubic-bezier(0.22,1,0.36,1) both', animationDelay: '0.08s' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eef6ee', border: '1px solid #c2ddc2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#1e5a1e' }} aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                  <circle cx="12" cy="13" r="3"/>
+                </svg>
               </div>
-              <div>
-                <p className="text-sm text-[#1F2329] leading-relaxed">スマートフォンのカメラを起動する</p>
+              <div style={{ flex: 1, paddingTop: 7 }}>
+                <p style={{ fontSize: 13, color: '#1a1a1a', fontWeight: 500, lineHeight: 1.4 }}>スマートフォンのカメラを起動する</p>
               </div>
-            </li>
+            </div>
 
-            {/* Step 2 */}
-            <li className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-[11px] font-bold text-[#1F2329]">2</span>
+            {/* Step 2: scan */}
+            <div role="listitem" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingTop: 12, paddingBottom: 12, borderTop: '1px solid #e2dbd0', animation: 'fadeInStep 0.4s cubic-bezier(0.22,1,0.36,1) both', animationDelay: '0.16s' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eef6ee', border: '1px solid #c2ddc2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#1e5a1e' }} aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                  <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                  <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                  <path d="M7 12h10"/>
+                </svg>
               </div>
-              <div>
-                <p className="text-sm text-[#1F2329] leading-relaxed">下記のQRコードを読み取る</p>
+              <div style={{ flex: 1, paddingTop: 7 }}>
+                <p style={{ fontSize: 13, color: '#1a1a1a', fontWeight: 500, lineHeight: 1.4 }}>下記のQRコードを読み取る</p>
               </div>
-            </li>
+            </div>
 
-            {/* Step 3 */}
-            <li className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-[11px] font-bold text-[#1F2329]">3</span>
+            {/* Step 3: smartphone */}
+            <div role="listitem" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingTop: 12, paddingBottom: 2, borderTop: '1px solid #e2dbd0', animation: 'fadeInStep 0.4s cubic-bezier(0.22,1,0.36,1) both', animationDelay: '0.24s' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eef6ee', border: '1px solid #c2ddc2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#1e5a1e' }} aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+                  <path d="M12 18h.01"/>
+                </svg>
               </div>
-              <div>
-                <p className="text-sm text-[#1F2329] leading-relaxed">D-Confiaアプリが自動的に起動します</p>
-                <p className="text-xs text-gray-400">（アプリが未インストールの場合はストアへ誘導されます）</p>
-              </div>
-            </li>
-          </ol>
-
-          {/* QR code placeholder */}
-          <div className="flex flex-col items-center mb-5">
-            <div className="relative inline-block">
-              {/* Corner bracket — top-left */}
-              <span
-                aria-hidden="true"
-                className="absolute -top-1 -left-1 w-5 h-5 border-t-2 border-l-2 border-gray-400"
-              />
-              {/* Corner bracket — bottom-right */}
-              <span
-                aria-hidden="true"
-                className="absolute -bottom-1 -right-1 w-5 h-5 border-b-2 border-r-2 border-gray-400"
-              />
-
-              <div
-                role="img"
-                aria-label="QRコード"
-                style={{
-                  width: 200,
-                  height: 200,
-                  display: "grid",
-                  gridTemplateColumns: `repeat(13, 1fr)`,
-                  gridTemplateRows: `repeat(13, 1fr)`,
-                  padding: 4,
-                  backgroundColor: "#fff",
-                  boxSizing: "border-box",
-                }}
-              >
-                {QR_GRID.flat().map((dark, i) => (
-                  <div
-                    key={i}
-                    style={{ backgroundColor: dark ? "#1a1a1a" : "#fff" }}
-                  />
-                ))}
+              <div style={{ flex: 1, paddingTop: 7 }}>
+                <p style={{ fontSize: 13, color: '#1a1a1a', fontWeight: 500, lineHeight: 1.4 }}>D-Confiaアプリが自動的に起動します</p>
+                <p style={{ fontSize: 10.5, color: '#6b6b6b', marginTop: 3, lineHeight: 1.5 }}>アプリが未インストールの場合はストアへ誘導されます</p>
               </div>
             </div>
           </div>
 
-          {/* Timeout hint */}
-          <div className="flex items-center justify-center gap-1.5 mb-6">
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-gray-400"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span className="text-[11px] text-gray-400">このQRコードは10分間有効です</span>
+          {/* QR code card */}
+          <div style={{ position: 'relative', background: '#eef6ee', border: '1px solid #c2ddc2', borderRadius: 14, padding: '22px 18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 22 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#1e5a1e', marginBottom: 14, letterSpacing: '0.02em' }}>このQRコードをスキャン</p>
+
+            <div style={{ background: '#fff', borderRadius: 12, padding: 14, boxShadow: '0 2px 10px rgba(43,122,43,0.10)' }}>
+              <div style={{ position: 'relative' }}>
+                {/* Green corner brackets */}
+                <svg aria-hidden="true" style={{ position: 'absolute', top: -5, left: -5, width: 20, height: 20 }} viewBox="0 0 20 20" fill="none" stroke="#2b7a2b" strokeWidth="3" strokeLinecap="round"><polyline points="0,18 0,0 18,0"/></svg>
+                <svg aria-hidden="true" style={{ position: 'absolute', top: -5, right: -5, width: 20, height: 20, transform: 'scaleX(-1)' }} viewBox="0 0 20 20" fill="none" stroke="#2b7a2b" strokeWidth="3" strokeLinecap="round"><polyline points="0,18 0,0 18,0"/></svg>
+                <svg aria-hidden="true" style={{ position: 'absolute', bottom: -5, left: -5, width: 20, height: 20, transform: 'scaleY(-1)' }} viewBox="0 0 20 20" fill="none" stroke="#2b7a2b" strokeWidth="3" strokeLinecap="round"><polyline points="0,18 0,0 18,0"/></svg>
+                <svg aria-hidden="true" style={{ position: 'absolute', bottom: -5, right: -5, width: 20, height: 20, transform: 'scale(-1)' }} viewBox="0 0 20 20" fill="none" stroke="#2b7a2b" strokeWidth="3" strokeLinecap="round"><polyline points="0,18 0,0 18,0"/></svg>
+
+                <div
+                  role="img"
+                  aria-label="本人確認用QRコード"
+                  style={{
+                    width: 168,
+                    height: 168,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(21, 1fr)',
+                    gridTemplateRows: 'repeat(21, 1fr)',
+                    padding: 6,
+                    backgroundColor: '#fff',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {QR_GRID.map((dark, i) => (
+                    <div key={i} style={{ backgroundColor: dark ? '#1a1a1a' : '#fff' }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Timer */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 14, fontSize: 10.5, color: timerExpired ? '#c0392b' : '#1e5a1e', opacity: timerExpired ? 1 : 0.85 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span>{timerText}</span>
+            </div>
+            {/* Visually-hidden expiry announcement only */}
+            {timerExpired && (
+              <span role="alert" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+                QRコードの有効期限が切れました
+              </span>
+            )}
           </div>
 
           {/* CTA — desktop */}
