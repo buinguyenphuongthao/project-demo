@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { termsSections } from "../data/terms";
 import { TermsBox } from "./TermsBox";
 
@@ -8,9 +9,22 @@ interface TermsModalProps {
   onClose: () => void;
 }
 
+const TERMS_MODAL_TITLE_ID = "terms-modal-title";
+
 // Modal shell around the shared TermsBox — mirrors ConsentGate's
 // terms-box + freely-checkable agree-checkbox structure, just in a dialog.
 export function TermsModal({ open, agreed, onAgreedChange, onClose }: TermsModalProps) {
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -19,12 +33,15 @@ export function TermsModal({ open, agreed, onAgreedChange, onClose }: TermsModal
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={TERMS_MODAL_TITLE_ID}
         className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-h-[85vh] flex flex-col overflow-hidden"
         style={{ width: 'clamp(320px, calc(100% - 2rem), 560px)' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-[#1F2329]">利用規約</h2>
+          <h2 id={TERMS_MODAL_TITLE_ID} className="text-lg font-bold text-[#1F2329]">利用規約</h2>
           <button
             type="button"
             aria-label="モーダルを閉じる"

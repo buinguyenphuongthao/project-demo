@@ -47,6 +47,20 @@ describe('TermsModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('calls onClose when the Escape key is pressed', () => {
+    const onClose = vi.fn();
+    render(<TermsModal open={true} agreed={false} onAgreedChange={vi.fn()} onClose={onClose} />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onClose when the Escape key is pressed while closed', () => {
+    const onClose = vi.fn();
+    render(<TermsModal open={false} agreed={false} onAgreedChange={vi.fn()} onClose={onClose} />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('does not call onClose when clicking inside the panel', () => {
     const onClose = vi.fn();
     render(<TermsModal open={true} agreed={false} onAgreedChange={vi.fn()} onClose={onClose} />);
