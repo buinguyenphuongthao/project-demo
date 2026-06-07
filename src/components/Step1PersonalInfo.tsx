@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import type { PersonalInfoForm } from "../types";
+import { TermsModal } from "./TermsModal";
 import takakuLogo from "../assets/takaku_logo.svg";
 
 const PREFECTURES = [
@@ -152,9 +153,10 @@ interface Props {
   initialData: PersonalInfoForm;
   onProceed: (data: PersonalInfoForm) => void;
   onBack: () => void;
+  showTermsField?: boolean;
 }
 
-export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
+export function Step1PersonalInfo({ initialData, onProceed, onBack, showTermsField = false }: Props) {
   // ── Form state ──
   const [name, setName] = useState(initialData.name);
   const [kana, setKana] = useState(initialData.kana);
@@ -171,6 +173,8 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
   const [email, setEmail] = useState(initialData.email);
   const [invoiceNotIssuer, setInvoiceNotIssuer] = useState(initialData.invoiceNotIssuer);
   const [invoiceNumber, setInvoiceNumber] = useState(initialData.invoiceNumber);
+  const [termsAgreed, setTermsAgreed] = useState(false);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
 
   // ── Validation errors ──
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -183,13 +187,15 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
   const prefRef   = useRef<HTMLDivElement>(null);
   const addrRef   = useRef<HTMLDivElement>(null);
   const emailRef  = useRef<HTMLDivElement>(null);
+  const termsRef  = useRef<HTMLDivElement>(null);
 
   // ── Derived ──
   const emailOk = validateEmail(email);
   const dobFilled = dobYear !== '' && dobMonth !== '' && dobDay !== '';
   const isAllValid =
     name !== '' && kana !== '' && dobFilled &&
-    postal.length === 7 && prefecture !== '' && address !== '' && emailOk;
+    postal.length === 7 && prefecture !== '' && address !== '' && emailOk &&
+    (!showTermsField || termsAgreed);
 
   const yearOptions  = Array.from({ length: 116 }, (_, i) => String(2025 - i));
   const monthOptions = Array.from({ length: 12 }, (_, i) => pad(i + 1));
@@ -286,6 +292,7 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
     if (!prefecture)         errs.prefecture = 'この項目は必須です。';
     if (!address)            errs.address    = 'この項目は必須です。';
     if (!emailOk)            errs.email      = '有効なメールアドレスを入力してください。';
+    if (showTermsField && !termsAgreed) errs.terms = '規約に同意してください。';
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -295,7 +302,8 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
                   : errs.postal     ? postalRef
                   : errs.prefecture ? prefRef
                   : errs.address    ? addrRef
-                  : emailRef;
+                  : errs.email      ? emailRef
+                  : termsRef;
       first.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -517,6 +525,23 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
             </Field>
           )}
 
+          {showTermsField && (
+            <Field label="利用規約" badge="required" error={errors.terms} fieldRef={termsRef}>
+              <button
+                type="button"
+                className={[
+                  'block w-full h-[52px] px-4 text-base text-left rounded-lg',
+                  'bg-white border border-gray-300 transition-colors duration-150',
+                  'hover:border-gray-400',
+                  termsAgreed ? 'text-accent-primary font-semibold' : 'text-[#A8AEB8]',
+                ].join(' ')}
+                onClick={() => setTermsModalOpen(true)}
+              >
+                {termsAgreed ? '✓ 同意済み' : '内容を確認して同意する'}
+              </button>
+            </Field>
+          )}
+
           {/* CTA buttons — desktop only */}
           <div className="hidden sm:flex flex-col items-center gap-3 mt-6">
             <button
@@ -562,6 +587,15 @@ export function Step1PersonalInfo({ initialData, onProceed, onBack }: Props) {
           前のステップに戻る
         </button>
       </div>
+
+      {showTermsField && (
+        <TermsModal
+          open={termsModalOpen}
+          agreed={termsAgreed}
+          onAgreedChange={v => { setTermsAgreed(v); if (errors.terms) clearError('terms'); }}
+          onClose={() => setTermsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
