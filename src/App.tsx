@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { VersionSelectEntry, type DemoFlowVersion } from "./components/VersionSelectEntry";
 import { ConsentGate } from "./components/ConsentGate";
 import { StepEkycIntro } from "./components/StepEkycIntro";
 import { Step1PersonalInfo } from "./components/Step1PersonalInfo";
 import { Step2BankRegistration } from "./components/Step2BankRegistration";
 import { Step3IdentityVerification } from "./components/Step3IdentityVerification";
 import { StepQrTransition } from "./components/StepQrTransition";
+import { StepComplete } from "./components/StepComplete";
 import type { PersonalInfoForm, BankInfoForm, IdentityVerificationMethod } from "./types";
 
-type AppStep = "consent" | "ekyc" | "step1" | "step2" | "step3" | "qr";
+type AppStep = "entry" | "consent" | "ekyc" | "step1" | "step2" | "step3" | "qr" | "complete";
 
 const emptyPersonalInfo: PersonalInfoForm = {
   name: "", kana: "", dobYear: "", dobMonth: "", dobDay: "",
@@ -24,10 +26,22 @@ const emptyBankInfo: BankInfoForm = {
 };
 
 export default function App() {
-  const [step, setStep]                     = useState<AppStep>("consent");
+  const [step, setStep]                     = useState<AppStep>("entry");
+  const [flowVersion, setFlowVersion]       = useState<DemoFlowVersion | null>(null);
   const [personalInfo, setPersonalInfo]     = useState<PersonalInfoForm>(emptyPersonalInfo);
   const [bankInfo, setBankInfo]             = useState<BankInfoForm>(emptyBankInfo);
   const [identityMethod, setIdentityMethod] = useState<IdentityVerificationMethod | null>(null);
+
+  if (step === "entry") {
+    return (
+      <VersionSelectEntry
+        onSelect={(version) => {
+          setFlowVersion(version);
+          setStep(version === "seiyaku" ? "consent" : "ekyc");
+        }}
+      />
+    );
+  }
 
   if (step === "consent") {
     return <ConsentGate onProceed={() => setStep("ekyc")} />;
@@ -37,7 +51,7 @@ export default function App() {
     return (
       <StepEkycIntro
         onProceed={() => setStep("step1")}
-        onBack={() => setStep("consent")}
+        onBack={() => setStep(flowVersion === "seiyaku" ? "consent" : "entry")}
       />
     );
   }
@@ -46,6 +60,7 @@ export default function App() {
     return (
       <Step1PersonalInfo
         initialData={personalInfo}
+        showTermsField={flowVersion === "choku"}
         onProceed={(data) => {
           setPersonalInfo(data);
           setBankInfo(prev => ({ ...prev, holder: prev.holder || data.kana }));
@@ -86,11 +101,14 @@ export default function App() {
   if (step === "qr") {
     return (
       <StepQrTransition
-        // TODO: replace with real completion handler
-        onProceed={() => alert("✅ 本人確認手続きを完了しました。")}
+        onProceed={() => setStep("complete")}
         onBack={() => setStep("step3")}
       />
     );
+  }
+
+  if (step === "complete") {
+    return <StepComplete />;
   }
 
   return null;
