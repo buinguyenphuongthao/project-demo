@@ -7,8 +7,8 @@ interface VersionSelectEntryProps {
 }
 
 const VERSIONS: { id: DemoFlowVersion; title: string; description: string }[] = [
-  { id: "seiyaku", title: "成約便", description: "規約は専用画面で表示されます" },
-  { id: "choku",   title: "直便",   description: "規約はステップ1内で確認します" },
+  { id: "seiyaku", title: "成約便", description: "規約はステップ1内で確認します" },
+  { id: "choku",   title: "直便",   description: "規約は専用画面で表示されます" },
 ];
 
 // Demo-only entry point: lets a tester pick which flow variant to walk through.

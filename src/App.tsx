@@ -38,7 +38,7 @@ export default function App() {
       <VersionSelectEntry
         onSelect={(version) => {
           setFlowVersion(version);
-          setStep(version === "seiyaku" ? "consent" : "ekyc");
+          setStep(version === "choku" ? "consent" : "ekyc");
         }}
       />
     );
@@ -56,7 +56,7 @@ export default function App() {
     return (
       <StepEkycIntro
         onProceed={() => setStep("step1")}
-        onBack={() => setStep(flowVersion === "seiyaku" ? "consent" : "entry")}
+        onBack={() => setStep(flowVersion === "choku" ? "consent" : "entry")}
       />
     );
   }
@@ -65,7 +65,7 @@ export default function App() {
     return (
       <Step1PersonalInfo
         initialData={personalInfo}
-        showTermsField={flowVersion === "choku"}
+        showTermsField={flowVersion === "seiyaku"}
         onProceed={(data) => {
           setPersonalInfo(data);
           setBankInfo(prev => ({ ...prev, holder: prev.holder || data.kana }));
